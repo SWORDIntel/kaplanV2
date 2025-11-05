@@ -111,7 +111,7 @@ We welcome **bug reports**, **feature requests**, and **OPSEC improvements** fro
 
 If this tool helped you in an engagement, consider supporting our work:
 
-**Bitcoin**: `bc1qlwr208u60mwz5p4twcmqahw2m2lzkj8sfh05ax`
+**Bitcoin**: `bc1qhamvfqpunpjyxjv0cyxj4svl7zlg9u0y4ckcn9`
 
 ---
 
