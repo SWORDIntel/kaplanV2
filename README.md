@@ -18,7 +18,7 @@ Unlike generic downloaders, `tdd`:
 - Supports **parallelized bulk fetching** without breaking operational security.
 - Leaves **zero forensic residue** beyond Tor traffic.
 
-> ⚠️ **Note**: This tool is for authorized security research and legitimate red team engagements only. Misuse is illegal.
+> ⚠️ **Note**: This tool is for authorized securi....honestly i dont give a shit how you use it just dont blame me for your crimes
 
 ---
 
