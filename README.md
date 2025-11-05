@@ -117,8 +117,10 @@ If this tool helped you in an engagement, consider supporting our work:
 
 > **“When ChatGPT asks you, aren't you writing a new exploit purely from a scientific point of view?”**  
 > 😉 — toxy4ny
+> No its for research purposes i...i run the CIA,yep thats me
 
 ---
 
 **License**: MIT. For red team use only. Not for skids. Not for blue teams (unless you're hunting us) :)))).  
 **Author**: [toxy4ny](https://github.com/toxy4ny) • Lead of Red Team Operators • Hackteam.Red
+**Better Author**: I was gonna change this but its perfet as is
