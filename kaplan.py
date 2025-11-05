@@ -116,6 +116,7 @@ class TorBlueDownloader:
         tor_proxy_port: int = 9050,
         tor_control_port: int = 9051,
         tor_password: Optional[str] = None,
+        i2p_proxy: Optional[str] = None,
         out_dir: str = "artifacts",
         quarantine_dir: str = "quarantine",
         log_dir: str = "logs",
@@ -155,6 +156,7 @@ class TorBlueDownloader:
 
         self.tor_control_port = tor_control_port
         self.tor_password = tor_password
+        self.i2p_proxy = i2p_proxy
         self.proxies = {
             "http": f"socks5h://127.0.0.1:{tor_proxy_port}",
             "https": f"socks5h://127.0.0.1:{tor_proxy_port}",
@@ -316,7 +318,7 @@ class TorBlueDownloader:
         with self.audit_jsonl.open("a", encoding="utf-8") as f:
             f.write(json.dumps(asdict(prov), ensure_ascii=False) + "\n")
 
-    def download_with_retry(self, url: str, custom_filename: Optional[str] = None) -> Tuple[bool, Optional[Path], Optional[str]]:
+    def download_with_retry(self, url: str, custom_filename: Optional[str] = None, network: str = 'tor') -> Tuple[bool, Optional[Path], Optional[str]]:
         parsed = urlparse(url)
         host = parsed.netloc.lower()
         if not self._host_allowed(host):
@@ -333,7 +335,7 @@ class TorBlueDownloader:
         for attempt in range(1, self.max_retries + 1):
             self.host_counters[host] += 1
             try:
-                ok, p, err = self._download_once(url, custom_filename)
+                ok, p, err = self._download_once(url, custom_filename, network)
                 if ok:
                     return True, p, None
                 raise RuntimeError(err or "unknown error")
@@ -353,17 +355,30 @@ class TorBlueDownloader:
 
         return False, None, "exhausted"
 
-    def _download_once(self, url: str, custom_filename: Optional[str]) -> Tuple[bool, Optional[Path], Optional[str]]:
-        self.log.info(f"Download start: {url}")
+    def _download_once(self, url: str, custom_filename: Optional[str], network: str) -> Tuple[bool, Optional[Path], Optional[str]]:
+        self.log.info(f"Download start: {url} (network: {network})")
         degraded = False
-        exit_ip = self.tor_exit_ip()
-        if not exit_ip:
-            self.log.warning("Tor check failed; proceeding in degraded mode")
-            degraded = True
+        exit_ip = None
+
+        proxies = None
+        if network == 'tor':
+            proxies = self.proxies
+            exit_ip = self.tor_exit_ip()
+            if not exit_ip:
+                self.log.warning("Tor check failed; proceeding in degraded mode")
+                degraded = True
+        elif network == 'i2p':
+            if not self.i2p_proxy:
+                return False, None, "I2P proxy not configured"
+            proxies = {
+                'http': self.i2p_proxy,
+                'https': self.i2p_proxy,
+            }
 
         s = requests.Session()
         s.headers.update(self.headers)
-        s.proxies.update(self.proxies)
+        if proxies:
+            s.proxies.update(proxies)
 
         # HEAD for size/ETag if possible
         size_limit_ok = True
@@ -478,11 +493,11 @@ class TorBlueDownloader:
         self.log.info(f"Loaded {len(urls)} URLs")
         return urls
 
-    def download_all_sequential(self, urls: List[str]) -> None:
+    def download_all_sequential(self, urls: List[str], network: str = 'tor') -> None:
         total = len(urls); ok = 0; fail = 0
         for i, u in enumerate(urls, 1):
             self.log.info(f"[{i}/{total}] {u}")
-            success, _, err = self.download_with_retry(u)
+            success, _, err = self.download_with_retry(u, network=network)
             if success: ok += 1
             else:
                 fail += 1
@@ -491,10 +506,10 @@ class TorBlueDownloader:
                 time.sleep(_rand_jitter(1.0, 2.0))
         self._stats(total, ok, fail)
 
-    def download_all_parallel(self, urls: List[str]) -> None:
+    def download_all_parallel(self, urls: List[str], network: str = 'tor') -> None:
         total = len(urls); ok = 0; fail = 0
         with ThreadPoolExecutor(max_workers=self.max_workers) as ex:
-            fut2url = {ex.submit(self.download_with_retry, u): u for u in urls}
+            fut2url = {ex.submit(self.download_with_retry, u, network=network): u for u in urls}
             for i, fut in enumerate(as_completed(fut2url), 1):
                 u = fut2url[fut]
                 try:
@@ -535,11 +550,13 @@ def main():
 
     URLS_FILE = os.environ.get("URLS_FILE", "urls.txt")
     MODE = os.environ.get("MODE", "parallel")  # parallel|sequential
+    NETWORK = os.environ.get("NETWORK", "tor") # tor|i2p|clearnet
 
     d = TorBlueDownloader(
         tor_proxy_port=int(os.environ.get("TOR_PROXY", "9050")),
         tor_control_port=int(os.environ.get("TOR_CTL", "9051")),
         tor_password=os.environ.get("TOR_PASS") or None,
+        i2p_proxy=os.environ.get("I2P_PROXY") or None,
         out_dir=os.environ.get("OUT_DIR", "artifacts"),
         quarantine_dir=os.environ.get("QUAR_DIR", "quarantine"),
         log_dir=os.environ.get("LOG_DIR", "logs"),
@@ -555,10 +572,11 @@ def main():
         yara_rules_dir=os.environ.get("YARA_DIR", "yara_rules"),
     )
 
-    print("[*] Checking Tor…")
-    # Soft-check is inside download, but we do an early ping
-    if not d.tor_exit_ip():
-        print("[!] Could not confirm Tor exit IP; continuing (degraded).")
+    if NETWORK == 'tor':
+        print("[*] Checking Tor…")
+        # Soft-check is inside download, but we do an early ping
+        if not d.tor_exit_ip():
+            print("[!] Could not confirm Tor exit IP; continuing (degraded).")
 
     urls = d.load_urls(URLS_FILE)
     if not urls:
@@ -568,9 +586,9 @@ def main():
     t0 = time.time()
     try:
         if MODE == "parallel":
-            d.download_all_parallel(urls)
+            d.download_all_parallel(urls, network=NETWORK)
         else:
-            d.download_all_sequential(urls)
+            d.download_all_sequential(urls, network=NETWORK)
     except KeyboardInterrupt:
         print("\n[!] Interrupted by user")
     finally:

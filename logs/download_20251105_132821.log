@@ -1,0 +1,24 @@
+2025-11-05 13:28:21,617 [INFO] Log file: logs/download_20251105_132821.log
+2025-11-05 13:28:21,619 [INFO] Loaded YARA rules: 1
+2025-11-05 13:28:21,619 [INFO] Loaded 3 URLs
+2025-11-05 13:28:21,620 [INFO] Download start: https://example.com (network: clearnet)
+2025-11-05 13:28:21,620 [INFO] Download start: https://example.com/robots.txt (network: clearnet)
+2025-11-05 13:28:21,620 [INFO] Download start: https://kernel.org (network: clearnet)
+2025-11-05 13:28:22,178 [INFO] Saved: quarantine/file (513 bytes) sha256=6f5635035f36ad500b4fc4bb7816bb72ef5594e1bcae44fa074c5e988fc4c0fe
+2025-11-05 13:28:22,179 [INFO] [1/3] ✓ https://example.com
+2025-11-05 13:28:22,260 [INFO] Saved: quarantine/file_1 (18165 bytes) sha256=6f0dd0f07de9c20a8935b719f305939f7620afa134f23f46764d41a478ccb21c
+2025-11-05 13:28:22,260 [INFO] [2/3] ✓ https://kernel.org
+2025-11-05 13:28:22,645 [WARNING] Attempt 1/3 failed: 404 Client Error: Not Found for url: https://example.com/robots.txt
+2025-11-05 13:28:22,647 [WARNING] Tor NEWNYM failed: [Errno 111] Connection refused
+2025-11-05 13:28:26,957 [INFO] Download start: https://example.com/robots.txt (network: clearnet)
+2025-11-05 13:28:27,878 [WARNING] Attempt 2/3 failed: 404 Client Error: Not Found for url: https://example.com/robots.txt
+2025-11-05 13:28:27,878 [WARNING] Tor NEWNYM failed: [Errno 111] Connection refused
+2025-11-05 13:28:34,727 [INFO] Download start: https://example.com/robots.txt (network: clearnet)
+2025-11-05 13:28:35,326 [WARNING] Attempt 3/3 failed: 404 Client Error: Not Found for url: https://example.com/robots.txt
+2025-11-05 13:28:35,327 [ERROR] [3/3] ✗ https://example.com/robots.txt — 404 Client Error: Not Found for url: https://example.com/robots.txt
+2025-11-05 13:28:35,328 [INFO] ============================================================
+2025-11-05 13:28:35,328 [INFO] Acquisition complete
+2025-11-05 13:28:35,328 [INFO] Success: 2/3  Fail: 1/3
+2025-11-05 13:28:35,328 [INFO] Quarantine: /home/user/Pictures/tor-blue-downloader_v4_bundle/quarantine
+2025-11-05 13:28:35,328 [INFO] Audit JSONL: /home/user/Pictures/tor-blue-downloader_v4_bundle/logs/audit.jsonl
+2025-11-05 13:28:35,328 [INFO] ============================================================

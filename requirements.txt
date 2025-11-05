@@ -1,0 +1,9 @@
+requests
+stem
+python-magic
+yara-python
+curl-cffi
+cryptography
+fastapi
+uvicorn
+flask

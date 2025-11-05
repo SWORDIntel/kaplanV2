@@ -1,0 +1,40 @@
+{
+  "url": "https://example.com",
+  "requested_at": "2025-11-05T18:28:22.177735+00:00",
+  "completed_at": "2025-11-05T18:28:22.177753+00:00",
+  "tor_exit_ip": null,
+  "http_status": 200,
+  "http_headers": {
+    "Accept-Ranges": "bytes",
+    "Content-Type": "text/html",
+    "ETag": "\"bc2473a18e003bdb249eba5ce893033f:1760028122.592274\"",
+    "Last-Modified": "Thu, 09 Oct 2025 16:42:02 GMT",
+    "Vary": "Accept-Encoding",
+    "Content-Encoding": "gzip",
+    "Content-Length": "363",
+    "Cache-Control": "max-age=86000",
+    "Date": "Wed, 05 Nov 2025 18:28:27 GMT",
+    "Connection": "keep-alive",
+    "Alt-Svc": "h3=\":443\"; ma=93600"
+  },
+  "filename": "file",
+  "saved_as": "quarantine/file",
+  "size_bytes": 513,
+  "hashes": {
+    "md5": "bc2473a18e003bdb249eba5ce893033f",
+    "sha1": "4d2ccb820d3be7199f10b4f644a17812ff816df0",
+    "sha256": "6f5635035f36ad500b4fc4bb7816bb72ef5594e1bcae44fa074c5e988fc4c0fe"
+  },
+  "policy_blocked": false,
+  "degraded_mode": false,
+  "error": null,
+  "scans": {
+    "clamav": null,
+    "yara_matches": [
+      "Demo"
+    ],
+    "mime_magic": "text/html",
+    "content_type_header": "text/html"
+  },
+  "notes": null
+}

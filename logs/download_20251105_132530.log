@@ -1,0 +1,27 @@
+2025-11-05 13:25:30,288 [INFO] Log file: logs/download_20251105_132530.log
+2025-11-05 13:25:30,290 [INFO] Loaded YARA rules: 1
+2025-11-05 13:25:30,290 [INFO] Loaded 3 URLs
+2025-11-05 13:25:30,291 [INFO] Download start: https://example.com
+2025-11-05 13:25:30,291 [INFO] Download start: https://example.com/robots.txt
+2025-11-05 13:25:30,291 [INFO] Download start: https://kernel.org
+2025-11-05 13:25:30,292 [WARNING] Tor check failed; proceeding in degraded mode
+2025-11-05 13:25:30,293 [WARNING] Tor check failed; proceeding in degraded mode
+2025-11-05 13:25:30,294 [WARNING] Attempt 1/3 failed: Missing dependencies for SOCKS support.
+2025-11-05 13:25:30,294 [WARNING] Tor check failed; proceeding in degraded mode
+2025-11-05 13:25:30,295 [WARNING] Attempt 1/3 failed: Missing dependencies for SOCKS support.
+2025-11-05 13:25:30,296 [WARNING] Attempt 1/3 failed: Missing dependencies for SOCKS support.
+2025-11-05 13:25:30,296 [WARNING] Tor NEWNYM failed: [Errno 111] Connection refused
+2025-11-05 13:25:30,297 [WARNING] Tor NEWNYM failed: [Errno 111] Connection refused
+2025-11-05 13:25:30,297 [WARNING] Tor NEWNYM failed: [Errno 111] Connection refused
+2025-11-05 13:25:33,944 [INFO] Download start: https://example.com
+2025-11-05 13:25:33,945 [WARNING] Tor check failed; proceeding in degraded mode
+2025-11-05 13:25:33,945 [WARNING] Attempt 2/3 failed: Missing dependencies for SOCKS support.
+2025-11-05 13:25:33,945 [WARNING] Tor NEWNYM failed: [Errno 111] Connection refused
+2025-11-05 13:25:33,982 [INFO] Download start: https://example.com/robots.txt
+2025-11-05 13:25:33,982 [WARNING] Tor check failed; proceeding in degraded mode
+2025-11-05 13:25:33,982 [WARNING] Attempt 2/3 failed: Missing dependencies for SOCKS support.
+2025-11-05 13:25:33,983 [WARNING] Tor NEWNYM failed: [Errno 111] Connection refused
+2025-11-05 13:25:34,031 [INFO] Download start: https://kernel.org
+2025-11-05 13:25:34,032 [WARNING] Tor check failed; proceeding in degraded mode
+2025-11-05 13:25:34,032 [WARNING] Attempt 2/3 failed: Missing dependencies for SOCKS support.
+2025-11-05 13:25:34,032 [WARNING] Tor NEWNYM failed: [Errno 111] Connection refused

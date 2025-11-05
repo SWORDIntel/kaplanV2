@@ -1,0 +1,42 @@
+{
+  "url": "https://kernel.org",
+  "requested_at": "2025-11-05T18:28:22.260003+00:00",
+  "completed_at": "2025-11-05T18:28:22.260012+00:00",
+  "tor_exit_ip": null,
+  "http_status": 200,
+  "http_headers": {
+    "Server": "nginx",
+    "Date": "Wed, 05 Nov 2025 18:28:27 GMT",
+    "Content-Type": "text/html; charset=utf-8",
+    "Last-Modified": "Wed, 05 Nov 2025 06:12:55 GMT",
+    "Transfer-Encoding": "chunked",
+    "Connection": "keep-alive",
+    "Vary": "Accept-Encoding",
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Strict-Transport-Security": "max-age=15768001",
+    "Referrer-Policy": "same-origin",
+    "Content-Security-Policy": "default-src 'self' *.kernel.org; img-src https: data:",
+    "Content-Encoding": "gzip"
+  },
+  "filename": "file",
+  "saved_as": "quarantine/file_1",
+  "size_bytes": 18165,
+  "hashes": {
+    "md5": "c167f7ec346d3e59e5b4f73375def161",
+    "sha1": "e65de359af5cd7d8cffd6db24718f305a1566d44",
+    "sha256": "6f0dd0f07de9c20a8935b719f305939f7620afa134f23f46764d41a478ccb21c"
+  },
+  "policy_blocked": false,
+  "degraded_mode": false,
+  "error": null,
+  "scans": {
+    "clamav": null,
+    "yara_matches": [
+      "Demo"
+    ],
+    "mime_magic": "text/html",
+    "content_type_header": "text/html; charset=utf-8"
+  },
+  "notes": null
+}
