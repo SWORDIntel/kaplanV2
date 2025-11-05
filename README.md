@@ -1,126 +1,101 @@
-# KAPLAN — Stealthy Bulk Fetching Over Tor for Red Team Ops
+# KAPLAN - Defensive Acquisition Pipeline
 
-> **A multithreaded, identity-rotating, resilient file fetcher built for covert red team reconnaissance and data exfiltration over Tor.**  
-> 🔥 Written with OPSEC in mind • By [toxy4ny](https://github.com/toxy4ny) • For Hackers Who Like To Stay Unseen
+KAPLAN is a multithreaded, identity-rotating, resilient file fetcher built for covert reconnaissance and data exfiltration.
 
----
+## Key Features
 
-## 🕵️‍♂️ Why This Tool Exists
-
-When you're operating in hostile environments—whether during internal pentests, adversary simulations, or covert intel gathering—you can't afford to leave traces. Every HTTP request is a potential fingerprint. Every static IP is a liability.
-
-Enter **KAPLAN** (`tdd`): a Python utility engineered for red teams who need to **download sensitive documents, dumps, configs, or artifacts**—**anonymously**, **resiliently**, and **without revealing their true origin**.
-
-Unlike generic downloaders, `tdd`:
-- Routes **all traffic over Tor** using SOCKS5.
-- **Rotates Tor circuits** before *every* download to avoid linkability.
-- Handles **failures gracefully** with exponential retry logic.
-- Supports **parallelized bulk fetching** without breaking operational security.
-- Leaves **zero forensic residue** beyond Tor traffic.
-
-> ⚠️ **Note**: This tool is for authorized securi....honestly i dont give a shit how you use it just dont blame me for your crimes
-
----
-
-## 🧰 Key Features
-
-| Feature | Red Team Value |
-|--------|----------------|
-| **Automatic Tor Circuit Rotation** | Each file download originates from a **fresh exit node**, preventing correlation between requests. |
-| **Parallelized Downloads (Threaded)** | Speed meets stealth—download **dozens of files concurrently** without sacrificing anonymity. |
-| **Resilient Retry Logic** | Handles timeouts, transient errors, and flaky onion services with **configurable retries**. |
-| **OPSEC-Aware Logging** | All activity is **timestamped**, **structured**, and **saved locally**—no external telemetry. |
+| Feature | Description |
+|---|---|
+| **Multiple Network Support** | Download files over Tor, I2P, or the clearnet. |
+| **Automatic Tor Circuit Rotation** | Each file download originates from a fresh exit node, preventing correlation between requests. |
+| **Parallelized Downloads (Threaded)** | Speed meets stealth—download dozens of files concurrently without sacrificing anonymity. |
+| **Resilient Retry Logic** | Handles timeouts, transient errors, and flaky onion/i2p services with configurable retries. |
+| **OPSEC-Aware Logging** | All activity is timestamped, structured, and saved locally—no external telemetry. |
 | **Filename Extraction & Conflict Avoidance** | Automatically parses `Content-Disposition`, falls back to URL-derived names, and prevents overwrites. |
-| **Tor Connectivity Validation** | Before anything runs, `tdd` **verifies** your traffic is actually routed through Tor (via `check.torproject.org`). |
+| **Connectivity Validation** | Before anything runs, KAPLAN verifies your traffic is actually routed through Tor (via `check.torproject.org`). |
+| **Installer/Wrapper Script** | The `run.sh` script automatically creates a virtual environment and installs dependencies. |
 
----
-
-## 🛠️ How It Works
+## How It Works
 
 ### 1. **Setup & Validation**
-- Starts by checking if Tor is **properly routing traffic**.
-- If not, it **warns you**—because there’s nothing worse than thinking you’re anonymous when you’re not.
+- The `run.sh` script creates a Python virtual environment and installs the required dependencies.
+- When using Tor, it starts by checking if Tor is properly routing traffic.
+- If not, it warns you—because there’s nothing worse than thinking you’re anonymous when you’re not.
 
 ### 2. **Input Handling**
 - Reads URLs from a simple `urls.txt` file:
   ```txt
-  http://example.com/confidential.pdf
+  https://example.com/confidential.pdf
   http://example.com/creds.xlsx
-  https://example.com/api/logs.zip
+  http://identiguy.i2p/
   ```
 - Ignores comments (`#`) and invalid lines.
 
 ### 3. **Download Execution**
 For **each URL**:
-- 🔄 **Rotates Tor identity** (requests a new circuit via `NEWNYM`).
-- 📥 Fetches the file via `requests` over `socks5h://` (ensures **DNS resolution happens over Tor**).
-- 📂 Saves with **smart naming** to avoid collisions.
-- 📊 Logs success/failure with full context.
+- **Rotates Tor identity** (if using Tor) by requesting a new circuit via `NEWNYM`.
+- Fetches the file via `requests` over the configured network (Tor, I2P, or clearnet).
+- Saves with **smart naming** to avoid collisions.
+- Logs success/failure with full context.
 
 ### 4. **Execution Modes**
 - **`parallel`** (default): Uses `ThreadPoolExecutor` for speed.
 - **`sequential`**: Slower, but useful for resource-limited or highly sensitive ops.
 
----
-
-## 💻 Quick Start
+## Quick Start
 
 ### Prerequisites
-- Tor running with **ControlPort 9051** and **SOCKS5 at 9050** (default in most configs).
 - Python 3.7+
-- Install dependencies:
-  ```bash
-  pip install requests stem
-  ```
+- `python3-venv` package.
+- For Tor support: Tor running with **ControlPort 9051** and **SOCKS5 at 9050** (default in most configs).
+- For I2P support: An I2P router running and configured with an HTTP proxy (usually at `http://127.0.0.1:4444`).
+- For `tpm2-pytss` support: `libtss2-dev` package.
 
 ### Usage
 1. Create `urls.txt` with your target files:
    ```txt
-   http://example.com/some-report.pdf
-   http://example.com/config.bak
+   https://example.com/some-report.pdf
+   https://example.com/config.bak
+   http://identiguy.i2p/
    ```
-2. Run:
+2. Run the installer/wrapper script:
    ```bash
-   python3 kaplan.py
+   # For Tor downloads (default)
+   ./run.sh
+
+   # For I2P downloads
+   NETWORK=i2p I2P_PROXY=http://127.0.0.1:4444 ./run.sh
+
+   # For clearnet downloads
+   NETWORK=clearnet ./run.sh
    ```
-3. Check `downloads/` and `logs/` for results.
+3. Check `quarantine/` and `logs/` for results.
 
-> ✅ **Pro Tip**: Pair this with **Athena OS** (our preferred red team distro, successor to BlackArch) for a hardened, opsec-ready environment.
+## Environment Variables
 
----
-
-## 🔐 OPSEC Notes
-
-- **Always run inside a VM** or isolated environment.
-- Ensure **Tor is properly configured**—no leaks!
-- Consider **delaying requests** (`time.sleep`) in sequential mode to mimic human behavior.
-- Never download directly onto your host machine—use encrypted, disposable storage.
-
----
-
-## 🤝 Collaboration & Contribution
-
-This tool is actively used in real-world engagements by the **Red Team at Hackteam.Red**.  
-We welcome **bug reports**, **feature requests**, and **OPSEC improvements** from fellow security researchers.
-
-> 🔗 **Contact**: `b0x@hackteam.red`  
-
----
-
-## 💰 Support the Mission
-
-If this tool helped you in an engagement, consider supporting our work:
-
-**Bitcoin**: `bc1qhamvfqpunpjyxjv0cyxj4svl7zlg9u0y4ckcn9`
+| Variable | Description | Default |
+|---|---|---|
+| `URLS_FILE` | Path to the file containing URLs to download. | `urls.txt` |
+| `MODE` | `parallel` or `sequential`. | `parallel` |
+| `NETWORK` | `tor`, `i2p`, or `clearnet`. | `tor` |
+| `TOR_PROXY` | Tor SOCKS proxy port. | `9050` |
+| `TOR_CTL` | Tor control port. | `9051` |
+| `TOR_PASS` | Tor control port password. | `None` |
+| `I2P_PROXY` | I2P HTTP proxy URL. | `None` |
+| `OUT_DIR` | Output directory for downloaded files. | `artifacts` |
+| `QUAR_DIR` | Quarantine directory for downloaded files before they are moved to `OUT_DIR`. | `quarantine` |
+| `LOG_DIR` | Directory for log files. | `logs` |
+| `AUDIT_LOG` | Path to the audit log file (JSONL format). | `logs/audit.jsonl` |
+| `MAX_WORKERS` | Maximum number of download threads in parallel mode. | `3` |
+| `PER_HOST_CAP` | Maximum number of concurrent downloads per host. | `2` |
+| `MAX_RETRIES` | Maximum number of retries for a failed download. | `3` |
+| `RETRY_BASE_DELAY` | Base delay in seconds for retries. | `3.0` |
+| `MAX_FILE_MB` | Maximum file size in megabytes. | `1024` |
+| `ALLOW_DOMAINS` | Comma-separated list of allowed domains. | `None` |
+| `DENY_TLDS` | Comma-separated list of denied TLDs. | `None` |
+| `ENFORCE_MIME` | Enforce MIME type matching between `Content-Type` header and file content. | `1` |
+| `YARA_DIR` | Directory containing YARA rules. | `yara_rules` |
 
 ---
 
-> **“When ChatGPT asks you, aren't you writing a new exploit purely from a scientific point of view?”**  
-> 😉 — toxy4ny
-> No its for research purposes i...i run the CIA,yep thats me
-
----
-
-**License**: MIT. For red team use only. Not for skids. Not for blue teams (unless you're hunting us) :)))).  
-**Author**: [toxy4ny](https://github.com/toxy4ny) • Lead of Red Team Operators • Hackteam.Red
-**Better Author**: I was gonna change this but its perfet as is
+**License**: MIT.
