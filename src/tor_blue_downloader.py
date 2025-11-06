@@ -247,13 +247,40 @@ class TransportManager:
         self.disable_keepalive = disable_keepalive
         self.persona = persona
         self._sticky_session = None
+        self._i2p_proxy_rotation_index = 0
+        self._i2p_proxy_list = self._parse_i2p_proxies()
+
+    def _parse_i2p_proxies(self) -> List[str]:
+        """Parse multiple I2P proxies from env for rotation"""
+        import os
+        # Support multiple I2P proxies for rotation (comma-separated)
+        proxies_env = os.environ.get("I2P_PROXIES", "")
+        if proxies_env:
+            return [p.strip() for p in proxies_env.split(",") if p.strip()]
+        # Fallback to single proxy
+        return [self.i2p_http_proxy] if self.i2p_http_proxy else []
+
+    def rotate_i2p_proxy(self):
+        """Rotate to the next I2P proxy in the list"""
+        if len(self._i2p_proxy_list) > 1:
+            self._i2p_proxy_rotation_index = (self._i2p_proxy_rotation_index + 1) % len(self._i2p_proxy_list)
+            return True
+        return False
+
+    def _get_current_i2p_proxy(self) -> str:
+        """Get current I2P proxy from rotation list"""
+        if not self._i2p_proxy_list:
+            return self.i2p_http_proxy
+        return self._i2p_proxy_list[self._i2p_proxy_rotation_index]
 
     def _mk_proxies(self) -> Dict[str, str]:
         if self.transport == Transport.TOR:
             sp = f"socks5h://127.0.0.1:{self.tor_socks_port}"
             return {"http": sp, "https": sp}
         if self.transport == Transport.I2P:
-            return {"http": self.i2p_http_proxy, "https": self.i2p_http_proxy}
+            # Use rotated I2P proxy
+            current_proxy = self._get_current_i2p_proxy()
+            return {"http": current_proxy, "https": current_proxy}
         if self.transport == Transport.CUSTOM:
             proxies = {}
             if self.custom_http_proxy:
@@ -648,6 +675,32 @@ class TorBlueDownloader:
                 self.log.warning(f"Tor NEWNYM failed: {e}")
                 return False
 
+    def rotate_i2p_identity(self) -> bool:
+        """Rotate I2P tunnel/proxy for anonymity"""
+        if self.transport != Transport.I2P:
+            self.log.info("I2P rotation skipped (transport != i2p)")
+            return False
+        with self.tor_lock:  # Reuse lock for thread safety
+            try:
+                # Rotate proxy if multiple are configured
+                rotated = self.transport_mgr.rotate_i2p_proxy()
+                if rotated:
+                    self.log.info(f"I2P proxy rotated to index {self.transport_mgr._i2p_proxy_rotation_index}")
+                    # Longer delay for I2P tunnel establishment
+                    time.sleep(_rand_jitter(5.0, 10.0))
+                    return True
+                else:
+                    # Even with single proxy, clear session to force new tunnel
+                    if hasattr(self.transport_mgr, '_sticky_session') and self.transport_mgr._sticky_session:
+                        self.transport_mgr._sticky_session.close()
+                        self.transport_mgr._sticky_session = None
+                    self.log.info("I2P session cleared (single proxy mode)")
+                    time.sleep(_rand_jitter(5.0, 10.0))
+                    return True
+            except Exception as e:
+                self.log.warning(f"I2P rotation failed: {e}")
+                return False
+
     def tor_exit_ip(self) -> Optional[str]:
         if self.transport != Transport.TOR:
             return None
@@ -756,30 +809,46 @@ class TorBlueDownloader:
             self.log.warning(msg)
             return False, None, msg
 
+        # Detect I2P domain for algorithm adjustments
+        is_i2p_domain = host.endswith('.i2p')
+
         self._bucket_for(host)
 
+        # Reduce concurrent connections for I2P sites
+        per_host_cap = max(1, self.per_host_cap // 2) if is_i2p_domain else self.per_host_cap
         self.host_counters.setdefault(host, 0)
-        if self.host_counters[host] >= self.per_host_cap:
+        if self.host_counters[host] >= per_host_cap:
             self.log.info(f"Per-host cap reached for {host}; waiting")
             time.sleep(_rand_jitter(0.5, 1.5))
 
-        for attempt in range(1, self.max_retries + 1):
+        # Increase retries for I2P due to slower/less reliable network
+        max_retries = self.max_retries + 2 if is_i2p_domain else self.max_retries
+
+        for attempt in range(1, max_retries + 1):
             self.host_counters[host] += 1
             try:
                 if host in self.buckets_req:
                     self.buckets_req[host].take(1.0)
-                ok, p, err = self._download_once(url, custom_filename, host)
+                ok, p, err = self._download_once(url, custom_filename, host, is_i2p_domain)
                 if ok:
                     self.egress_flows[host] = self.egress_flows.get(host, 0) + 1
                     return True, p, None
                 raise RuntimeError(err or "unknown error")
             except Exception as e:
-                msg = f"Attempt {attempt}/{self.max_retries} failed: {e}"
+                msg = f"Attempt {attempt}/{max_retries} failed: {e}"
                 self.log.warning(msg)
-                if attempt < self.max_retries:
-                    delay = self.retry_base_delay * (2 ** (attempt - 1)) + _rand_jitter(0.5, 1.5)
+                if attempt < max_retries:
+                    # Longer delays for I2P
+                    base_delay = self.retry_base_delay * 1.5 if is_i2p_domain else self.retry_base_delay
+                    delay = base_delay * (2 ** (attempt - 1)) + _rand_jitter(0.5, 1.5)
+
+                    # Rotate identity based on transport
                     if self.transport == Transport.TOR and (attempt == 1 or random.random() < 0.5):
                         self.renew_tor_identity()
+                    elif self.transport == Transport.I2P and (attempt == 1 or random.random() < 0.7):
+                        # More aggressive rotation for I2P
+                        self.rotate_i2p_identity()
+
                     time.sleep(delay)
                 else:
                     return False, None, str(e)
@@ -787,8 +856,8 @@ class TorBlueDownloader:
                 self.host_counters[host] = max(0, self.host_counters[host] - 1)
         return False, None, "exhausted"
 
-    def _download_once(self, url: str, custom_filename: Optional[str], host: str) -> Tuple[bool, Optional[Path], Optional[str]]:
-        self.log.info(f"Download start: {url}")
+    def _download_once(self, url: str, custom_filename: Optional[str], host: str, is_i2p: bool = False) -> Tuple[bool, Optional[Path], Optional[str]]:
+        self.log.info(f"Download start: {url} (I2P: {is_i2p})")
         degraded = False
         exit_ip = self.tor_exit_ip() if self.transport == Transport.TOR else None
         if self.transport == Transport.TOR and not exit_ip:
@@ -797,9 +866,13 @@ class TorBlueDownloader:
 
         s = self.transport_mgr.session()
 
+        # Use longer timeouts for I2P
+        head_timeout = 60 if is_i2p else 30
+        get_timeout = 180 if is_i2p else 90
+
         content_length = None
         try:
-            h = s.head(url, timeout=30, allow_redirects=True)
+            h = s.head(url, timeout=head_timeout, allow_redirects=True)
             if getattr(h, "ok", False) and h.headers.get("Content-Length"):
                 content_length = int(h.headers["Content-Length"])
                 if content_length > self.max_file_bytes:
@@ -807,7 +880,7 @@ class TorBlueDownloader:
         except Exception:
             degraded = True
 
-        r = s.get(url, timeout=90, stream=True, allow_redirects=True)
+        r = s.get(url, timeout=get_timeout, stream=True, allow_redirects=True)
         r.raise_for_status()
 
         filename = self._next_filename(url, r, custom_filename)
@@ -1019,9 +1092,15 @@ class DownloaderShell(cmd.Cmd):
             print(f"{h:28} {self.d.egress_flows.get(h,0):5d}  {self.d.egress_bytes[h]:>10d}")
 
     def do_renew(self, arg):
-        "renew — force Tor NEWNYM"
-        ok = self.d.renew_tor_identity()
-        print("NEWNYM: " + ("ok" if ok else "skipped/failed"))
+        "renew — force Tor NEWNYM or I2P rotation"
+        if self.d.transport == Transport.TOR:
+            ok = self.d.renew_tor_identity()
+            print("Tor NEWNYM: " + ("ok" if ok else "skipped/failed"))
+        elif self.d.transport == Transport.I2P:
+            ok = self.d.rotate_i2p_identity()
+            print("I2P rotation: " + ("ok" if ok else "skipped/failed"))
+        else:
+            print("Identity renewal only available for Tor/I2P transports")
 
     def do_cover(self, arg):
         "cover on|off — toggle cover traffic"
