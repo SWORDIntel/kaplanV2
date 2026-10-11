@@ -218,3 +218,7 @@ When using the interactive TUI mode, you can manually force I2P rotation:
 This will rotate to the next I2P proxy in your configured list or clear the current session to force a new tunnel.
 
 ---
+
+## License
+
+This project is licensed under the **SWORD Restricted Source Licence v1.0 (SRSL-1.0)**. Personal and non-commercial use is permitted under its terms; commercial exploitation requires a separate written agreement. See [LICENSE](LICENSE).
